@@ -1,0 +1,44 @@
+[
+  {
+    "hash": "edbd2d2a12642c13a3c8963ade2b8c9d9b201f5249ba18933d65cd24905d2d99",
+    "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "type": "excel",
+    "size": 24312
+  },
+  {
+    "hash": "8f9de456ccaad11cf001ade12378b4a33bd7af9e20ea13def5ac8be5fa0138d8",
+    "mime": "application/pdf",
+    "type": "pdf",
+    "size": 36372
+  },
+  {
+    "hash": "516a37c1f575fff2c99c9261c199e4fd5565651e6890a5e939de19db7473a6d8",
+    "mime": "application/pdf",
+    "type": "pdf",
+    "size": 38922
+  },
+  {
+    "hash": "4add57f9be515fec1ea95adb2141c76bed372b07d17133ac779302972e3c45df",
+    "mime": "application/pdf",
+    "type": "pdf",
+    "size": 29666
+  },
+  {
+    "hash": "1ec48353eae5c9efad726aed532c8b62f6bff153f94524e27f1ef36986809e88",
+    "mime": "application/pdf",
+    "type": "pdf",
+    "size": 44055
+  },
+  {
+    "hash": "e1366c1e85ac06a858e085ece7dd037113b999c4f7d8a2861e007c6a04db0692",
+    "mime": "application/pdf",
+    "type": "pdf",
+    "size": 32693
+  },
+  {
+    "hash": "b4a87bd673f1f39e6bf1904f81b89237520ca9a412715689ab67dc224b5c45c8",
+    "mime": "application/pdf",
+    "type": "pdf",
+    "size": 32794
+  }
+]

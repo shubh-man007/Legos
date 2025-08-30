@@ -1,0 +1,29 @@
+fastapi
+uvicorn
+google-cloud-storage
+google-cloud-firestore
+google-cloud-vision
+google-cloud-documentai
+pinecone
+langchain
+langchain-community
+langchain-anthropic
+langchain-google-vertexai
+langchain-tavily
+langchain-pinecone
+langgraph
+python-dotenv
+tiktoken
+unstructured[all] 
+pydantic
+markitdown
+pandas
+markdown
+PyPDF2
+python-docx
+pytesseract
+
+
+# gcloud auth login
+# gcloud config set project h2s-legal
+# gcloud auth application-default set-quota-project
