@@ -31,13 +31,16 @@ class State:
     
     # Output Layer
     vector_ids: Dict[str, List[str]] = field(default_factory=dict)  
-    summaries: Dict[str, str] = field(default_factory=list)
+    summaries: Dict[str, str] = field(default_factory=dict)
     processing_log: List[str] = field(default_factory=list)
     
     # Control Flow
     current_step: str = ""
     errors: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
+    
+    # Agent Metadata
+    metadata: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     
     def add_log(self, message: str):
         self.processing_log.append(f"[{self.current_step}] {message}")

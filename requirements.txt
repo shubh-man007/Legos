@@ -7,11 +7,14 @@ google-cloud-documentai
 pinecone
 langchain
 langchain-community
+langchain-core
 langchain-anthropic
 langchain-google-vertexai
 langchain-tavily
 langchain-pinecone
 langgraph
+langsmith
+anthropic
 python-dotenv
 tiktoken
 unstructured[all] 
@@ -22,7 +25,9 @@ markdown
 PyPDF2
 python-docx
 pytesseract
-
+huggingface-hub 
+python-multipart 
+typing-extensions
 
 # gcloud auth login
 # gcloud config set project h2s-legal

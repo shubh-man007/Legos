@@ -6,8 +6,8 @@ from typing import List, Dict, Any
 from google.cloud import storage
 from langchain_core.documents import Document
 from langchain_anthropic import ChatAnthropic
-from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_pinecone import PineconeVectorStore
+from langchain_pinecone import PineconeEmbeddings
 from markitdown import MarkItDown
 from pinecone import Pinecone, ServerlessSpec
 
@@ -35,7 +35,7 @@ try:
             spec=ServerlessSpec(cloud=PINECONE_CLOUD, region=PINECONE_REGION),
         )
     pinecone_index = pc.Index(PINECONE_INDEX_NAME)
-    embeddings_model = HuggingFaceEmbeddings(model_name="BAAI/bge-large-en-v1.5")
+    embeddings_model = PineconeEmbeddings(model="llama-text-embed-v2")
     llm = ChatAnthropic(model="claude-3-5-sonnet-20240620")
     storage_client = storage.Client()
 except KeyError as e:
