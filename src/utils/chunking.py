@@ -80,7 +80,6 @@ def chunk_section(section_text: str, target_min_tokens: int = 300, target_max_to
             current = []
             current_tokens = 0
 
-    # Process each part
     for idx, part in enumerate(parts):
         part = part.strip()
         if not part:

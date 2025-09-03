@@ -6,9 +6,10 @@ import time
 from google.cloud import storage
 from google.cloud.exceptions import NotFound, GoogleCloudError
 from docx import Document
+import PyPDF2
 
-from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_pinecone import PineconeVectorStore
+from langchain_pinecone import PineconeEmbeddings
 from pinecone import Pinecone, ServerlessSpec
 from dotenv import load_dotenv
 
@@ -31,7 +32,7 @@ try:
             spec=ServerlessSpec(cloud=PINECONE_CLOUD, region=PINECONE_REGION),
         )
     pinecone_index = pc.Index(PINECONE_INDEX_NAME)
-    embeddings_model = HuggingFaceEmbeddings(model_name="BAAI/bge-large-en-v1.5")
+    embeddings_model = PineconeEmbeddings(model="llama-text-embed-v2")
 except KeyError as e:
     print(f"Warning: Pinecone not configured: {e}")
     pinecone_index = None
@@ -163,13 +164,43 @@ def extract_docx(file_path: str) -> tuple[str, int]:
 
 
 def extract_text(file_path) -> tuple[str, int]:
-    try:
-        with open(file_path, "r", encoding="utf-8", errors="strict") as f:
-            return f.read(), 1
-    except UnicodeDecodeError:
-        with open(file_path, "rb") as f:
-            data = f.read()
-            return data.decode("utf-8", errors="replace"), 1
+    file_ext = os.path.splitext(file_path)[1].lower()
+    
+    if file_ext == '.pdf':
+        try:
+            with open(file_path, "rb") as f:
+                reader = PyPDF2.PdfReader(f)
+                
+                if reader.is_encrypted:
+                    return "PDF is encrypted and cannot be processed", 0
+                
+                text_parts = []
+                pages_processed = 0
+                
+                for page in reader.pages:
+                    try:
+                        page_text = page.extract_text()
+                        if page_text and page_text.strip():
+                            text_parts.append(page_text)
+                            pages_processed += 1
+                    except Exception as e:
+                        continue
+                
+                if text_parts:
+                    return "\n\n".join(text_parts), pages_processed
+                else:
+                    return "No text could be extracted from PDF", 0
+                    
+        except Exception as e:
+            return f"Error extracting PDF text: {str(e)}", 0
+    else:
+        try:
+            with open(file_path, "r", encoding="utf-8", errors="strict") as f:
+                return f.read(), 1
+        except UnicodeDecodeError:
+            with open(file_path, "rb") as f:
+                data = f.read()
+                return data.decode("utf-8", errors="replace"), 1
         
 
 async def upsert_to_pinecone(chunked_documents: dict, metadata: dict = None):
@@ -187,6 +218,11 @@ async def upsert_to_pinecone(chunked_documents: dict, metadata: dict = None):
             continue
             
         for doc in docs:
+            # Skip empty documents
+            if not doc.page_content or not doc.page_content.strip():
+                print(f"Skipping empty document from {filename}")
+                continue
+                
             doc.metadata.update({
                 **metadata,
                 "source": filename,
@@ -204,4 +240,6 @@ async def upsert_to_pinecone(chunked_documents: dict, metadata: dict = None):
         except Exception as e:
             print(f"Error upserting to Pinecone: {e}")
             return 0
+    else:
+        print("No valid documents to upsert to Pinecone")
     return 0

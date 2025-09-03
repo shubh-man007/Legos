@@ -5,10 +5,15 @@ import os
 import json
 from typing import List, Dict, Any
 from dotenv import load_dotenv
-from workflow import execute_workflow, process_document_from_state, analyze_all_documents_in_state
-from processor import process_gcs_file
+from workflow import analyze_document, process_from_state, analyze_all, run_pipeline
+from processor import process_file
 from agents.state.state import State
 import tempfile
+import sys
+import asyncio
+
+if sys.platform.startswith("win"):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 load_dotenv()
 
@@ -28,7 +33,7 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    return {"message": "Legos AI Contract Review API", "status": "running"}
+    return {"message": "Legos.ai", "status": "running"}
 
 @app.get("/health")
 async def health_check():
@@ -41,7 +46,7 @@ async def analyze_document(
     chunks: List[Dict[str, Any]] = None
 ):
     try:
-        result = await execute_workflow(document_id, raw_text, chunks)
+        result = await analyze_document(document_id, raw_text, chunks)
         return {
             "status": "success",
             "document_id": document_id,
@@ -59,7 +64,6 @@ async def analyze_uploaded_document(
         if not document_id:
             document_id = f"upload_{file.filename}_{os.urandom(4).hex()}"
         
-        # Read file content
         content = await file.read()
         
         if file.content_type == "text/plain":
@@ -70,7 +74,7 @@ async def analyze_uploaded_document(
         else:
             raw_text = content.decode("utf-8", errors="ignore")
         
-        result = await execute_workflow(document_id, raw_text)
+        result = await analyze_document(document_id, raw_text)
         
         return {
             "status": "success",
@@ -91,12 +95,9 @@ async def analyze_gcs_document(
         if not document_id:
             document_id = f"gcs_{bucket_name}_{file_path.replace('/', '_')}"
         
-        # Process through existing GCS pipeline
         metadata = {"source": "gcs", "bucket": bucket_name, "path": file_path}
-        await process_gcs_file(bucket_name, file_path, metadata)
+        await process_file(bucket_name, file_path, metadata)
         
-        # For now, return success message
-        # In full implementation, you'd retrieve the processed text from state
         return {
             "status": "success",
             "document_id": document_id,
@@ -106,15 +107,41 @@ async def analyze_gcs_document(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"GCS processing failed: {str(e)}")
 
+@app.post("/pipeline/gcs")
+async def execute_gcs_pipeline(
+    bucket_name: str,
+    folder_path: str
+):
+    try:
+        result = await run_pipeline(bucket_name, folder_path)
+        
+        if result.get("status") == "success":
+            return {
+                "status": "success",
+                "message": f"Pipeline completed successfully for gs://{bucket_name}/{folder_path}",
+                "summary": {
+                    "files_processed": result.get("files_processed", 0),
+                    "chunks_created": result.get("chunks_created", 0),
+                    "documents_analyzed": result.get("documents_analyzed", 0)
+                },
+                "results": result.get("results", {}),
+                "processing_log": result.get("processing_log", []),
+                "errors": result.get("errors", []),
+                "warnings": result.get("warnings", [])
+            }
+        else:
+            raise HTTPException(status_code=500, detail=f"Pipeline failed: {result.get('error', 'Unknown error')}")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pipeline execution failed: {str(e)}")
+
 @app.get("/document/{document_id}")
 async def get_document_analysis(document_id: str):
     try:
-        # This would need to be integrated with your actual state management
-        # For now, creating a mock state for demonstration
         mock_state = State()
         mock_state.raw_contents[document_id] = "Sample document content for testing"
         
-        result = await process_document_from_state(mock_state, document_id)
+        result = await process_from_state(mock_state, document_id)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve document: {str(e)}")
@@ -128,7 +155,7 @@ async def batch_analyze_documents(documents: List[Dict[str, Any]]):
             raw_text = doc.get("raw_text", "")
             chunks = doc.get("chunks", [])
             
-            result = await execute_workflow(doc_id, raw_text, chunks)
+            result = await analyze_document(doc_id, raw_text, chunks)
             results.append({
                 "document_id": doc_id,
                 "result": result
@@ -145,10 +172,8 @@ async def batch_analyze_documents(documents: List[Dict[str, Any]]):
 @app.post("/analyze/state")
 async def analyze_documents_in_state(state_data: Dict[str, Any]):
     try:
-        # Create state from provided data
         state = State()
         
-        # Populate state with provided data
         if "raw_contents" in state_data:
             state.raw_contents = state_data["raw_contents"]
         if "chunks" in state_data:
@@ -156,27 +181,38 @@ async def analyze_documents_in_state(state_data: Dict[str, Any]):
         if "mime_types" in state_data:
             state.mime_types = state_data["mime_types"]
         
-        # Analyze all documents in state
-        result = await analyze_all_documents_in_state(state)
+        result = await analyze_all(state)
         return result
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"State analysis failed: {str(e)}")
 
+# Get a rough idea on the api endpoints
 @app.get("/workflow/status")
 async def get_workflow_status():
     return {
         "status": "operational",
-        "agents": ["phraser", "attorney"],
-        "workflow": "phraser -> attorney -> end",
+        "agents": ["file_agent", "detection_agent", "extraction_agent", "phraser", "attorney"],
+        "workflow": "file_agent -> detection_agent -> extraction_agent -> phraser -> attorney -> end",
         "features": [
+            "gcs_integration",
+            "file_type_detection", 
+            "document_extraction",
+            "legal_aware_chunking",
+            "pinecone_vector_storage",
             "document_classification",
             "summarization", 
             "redline_identification",
             "common_grounds_analysis"
         ],
         "state_integration": "enabled",
-        "rag_support": "enabled"
+        "rag_support": "enabled",
+        "endpoints": {
+            "/pipeline/gcs": "Complete pipeline from GCS folder",
+            "/analyze/document": "Single document analysis",
+            "/analyze/upload": "File upload analysis",
+            "/batch/analyze": "Batch document analysis"
+        }
     }
 
 if __name__ == "__main__":
