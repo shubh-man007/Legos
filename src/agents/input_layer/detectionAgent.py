@@ -61,3 +61,11 @@ def detection_agent(state: State) -> State:
     state.files_skipped = [n for n, t in refined.items() if t in {"encrypted", "corrupted", "unknown"}]
 
     return state
+
+
+def detect_node(state: State) -> State:
+    try:
+        return detection_agent(state)
+    except Exception as e:
+        state.add_error(f"Detection agent failed: {e}")
+        return state

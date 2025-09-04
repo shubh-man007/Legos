@@ -53,3 +53,11 @@ def file_agent(state: State) -> State:
         state.add_error(f"File agent failed: {str(e)}")
     
     return state
+
+
+def file_node(state: State) -> State:
+    try:
+        return file_agent(state)
+    except Exception as e:
+        state.add_error(f"File agent failed: {e}")
+        return state

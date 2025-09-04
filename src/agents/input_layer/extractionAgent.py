@@ -1,4 +1,5 @@
 import os
+import asyncio
 from agents.state.state import State
 from excelProcessor import excel_to_document
 from utils.utils import extract_docx, extract_text, upsert_to_pinecone
@@ -129,3 +130,18 @@ async def extraction_agent(state: State) -> State:
         state.add_warning("No valid chunks to upsert to Pinecone")
     
     return state
+
+
+def extract_node(state: State) -> State:
+    try:
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        return loop.run_until_complete(extraction_agent(state))
+    except Exception as e:
+        state.add_error(f"Extraction agent failed: {e}")
+        return state

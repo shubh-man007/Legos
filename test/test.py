@@ -71,6 +71,4 @@ index = pc.Index(PINECONE_INDEX_NAME)
 for namespace in index.list_namespaces():
     print(namespace)
 
-
-for ids in index.list(namespace='__default__'):
-    print(ids)
+index.delete(delete_all=True, namespace='__default__')

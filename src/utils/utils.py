@@ -6,6 +6,7 @@ import time
 from google.cloud import storage
 from google.cloud.exceptions import NotFound, GoogleCloudError
 from docx import Document
+from typing import List
 import PyPDF2
 
 from langchain_pinecone import PineconeVectorStore
@@ -21,6 +22,8 @@ PINECONE_DIMENSION = 1024
 PINECONE_METRIC = "cosine"
 PINECONE_CLOUD = "aws"
 PINECONE_REGION = "us-east-1"
+
+embeddings = PineconeEmbeddings(model="llama-text-embed-v2")
 
 try:
     pc = Pinecone(api_key=PINECONE_API_KEY)
@@ -243,3 +246,19 @@ async def upsert_to_pinecone(chunked_documents: dict, metadata: dict = None):
     else:
         print("No valid documents to upsert to Pinecone")
     return 0
+
+
+def get_context(query: str, document_type: str, limit: int = 5) -> List[str]:
+    try:
+        pinecone_index_name = os.getenv("PINECONE_INDEX_NAME")
+        vectorstore = PineconeVectorStore.from_existing_index(
+            index_name=pinecone_index_name,
+            embedding=embeddings
+        )
+        
+        search_query = f"{query} document_type:{document_type}"
+        docs = vectorstore.similarity_search(search_query, k=limit)
+        
+        return [doc.page_content for doc in docs]
+    except Exception as e:
+        return []

@@ -1,0 +1,25 @@
+## Login:
+gcloud auth login
+gcloud config set project h2s-legal
+gcloud auth application-default set-quota-project
+
+
+## Database:
+# Info:
+gcloud sql instances list 
+gcloud sql instances describe legos-user
+gcloud sql instances describe legos-user --format="value(ipAddresses[0].ipAddress)"
+gcloud sql instances describe legos-user --format="value(connectionName)"
+
+# Create database:
+gcloud sql databases create legos_ai --instance=legos-user  
+
+# Create a User:
+gcloud sql users create legos_user --instance=legos-user --password=password
+
+# IP:
+Invoke-WebRequest -Uri "https://ipv4.icanhazip.com" | Select-Object -Exp
+andProperty Content
+
+# Authorize IP to connect to Cloud SQL:
+gcloud sql instances patch legos-user --authorized-networks=106.216.90.229/32
