@@ -6,12 +6,16 @@ import time
 from google.cloud import storage
 from google.cloud.exceptions import NotFound, GoogleCloudError
 from docx import Document
-from typing import List
+from typing import List, Dict
 import PyPDF2
 
 from langchain_pinecone import PineconeVectorStore
 from langchain_pinecone import PineconeEmbeddings
 from pinecone import Pinecone, ServerlessSpec
+
+import psycopg2
+from psycopg2 import OperationalError
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -24,6 +28,8 @@ PINECONE_CLOUD = "aws"
 PINECONE_REGION = "us-east-1"
 
 embeddings = PineconeEmbeddings(model="llama-text-embed-v2")
+
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 try:
     pc = Pinecone(api_key=PINECONE_API_KEY)
@@ -262,3 +268,18 @@ def get_context(query: str, document_type: str, limit: int = 5) -> List[str]:
         return [doc.page_content for doc in docs]
     except Exception as e:
         return []
+    
+
+def db_health() -> str:
+    try:
+        conn = psycopg2.connect(DATABASE_URL, connect_timeout=5)
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1;")
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return "connected" if result and result[0] == 1 else "unreachable"
+    except OperationalError:
+        return "unreachable"
+    except Exception:
+        return "error"

@@ -59,7 +59,7 @@ from pinecone.grpc import PineconeGRPC as Pinecone
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", "src", ".env"))
 
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
@@ -72,3 +72,4 @@ for namespace in index.list_namespaces():
     print(namespace)
 
 index.delete(delete_all=True, namespace='__default__')
+print("Done")

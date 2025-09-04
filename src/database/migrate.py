@@ -116,6 +116,51 @@ def seed_initial_data():
     return True
 
 
+def fix_processing_jobs_table():
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        
+        print("Fixing processing_jobs table...")
+        
+        # Drop the existing foreign key constraint
+        print("1. Dropping existing foreign key constraint...")
+        cursor.execute("ALTER TABLE processing_jobs DROP CONSTRAINT IF EXISTS processing_jobs_file_upload_id_fkey;")
+        
+        # Make file_upload_id nullable
+        print("2. Making file_upload_id nullable...")
+        cursor.execute("ALTER TABLE processing_jobs ALTER COLUMN file_upload_id DROP NOT NULL;")
+        
+        # Re-add the foreign key constraint but allow NULL values
+        print("3. Re-adding foreign key constraint...")
+        cursor.execute("""
+            ALTER TABLE processing_jobs 
+            ADD CONSTRAINT processing_jobs_file_upload_id_fkey 
+            FOREIGN KEY (file_upload_id) REFERENCES file_uploads(id) ON DELETE CASCADE;
+        """)
+        
+        # Update the index to handle NULL values
+        print("4. Updating index...")
+        cursor.execute("DROP INDEX IF EXISTS idx_processing_jobs_file_upload_id;")
+        cursor.execute("""
+            CREATE INDEX idx_processing_jobs_file_upload_id 
+            ON processing_jobs(file_upload_id) 
+            WHERE file_upload_id IS NOT NULL;
+        """)
+        
+        conn.commit()
+        print("processing_jobs table fixed successfully!")
+        
+        cursor.close()
+        conn.close()
+        
+    except Exception as e:
+        print(f"Error fixing processing_jobs table: {e}")
+        return False
+    
+    return True
+
+
 def test_database_connection():
     try:
         conn = psycopg2.connect(DATABASE_URL)
@@ -156,11 +201,15 @@ def main():
     if not apply_database_schema():
         sys.exit(1)
     
-    print("\n3. Seeding initial data...")
+    print("\n3. Fixing processing_jobs table...")
+    if not fix_processing_jobs_table():
+        sys.exit(1)
+    
+    print("\n4. Seeding initial data...")
     if not seed_initial_data():
         sys.exit(1)
     
-    print("\n4. Testing database connection...")
+    print("\n5. Testing database connection...")
     if not test_database_connection():
         sys.exit(1)
 

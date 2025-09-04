@@ -23,3 +23,6 @@ andProperty Content
 
 # Authorize IP to connect to Cloud SQL:
 gcloud sql instances patch legos-user --authorized-networks=106.216.90.229/32
+
+# View db:
+gcloud sql connect legos-user --user=legos_user --database=legos_ai
