@@ -55,6 +55,8 @@
 # print("Done")
 
 
+
+# Do not run this file, it will delete the records from pinecone.
 from pinecone.grpc import PineconeGRPC as Pinecone
 from dotenv import load_dotenv
 import os
