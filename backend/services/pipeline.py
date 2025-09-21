@@ -1,7 +1,3 @@
-"""
-Pipeline service for handling document processing results and database storage
-"""
-
 import os
 import uuid
 import json
@@ -110,8 +106,10 @@ class PipelineService:
                                deal_id: str, 
                                filename: str, 
                                doc_result: Dict[str, Any]):        
-        # Create file upload record
+        # Create file upload record with unique GCS path
         file_upload_id = str(uuid.uuid4())
+        unique_gcs_path = f"pipeline/{pipeline_id[:8]}/{filename}"
+        
         cursor.execute("""
             INSERT INTO file_uploads (
                 id, deal_id, original_filename, gcs_bucket, gcs_path,
@@ -121,7 +119,7 @@ class PipelineService:
             )
         """, (
             file_upload_id, deal_id, filename, 
-            "pipeline_upload", f"pipeline/{filename}", 
+            "pipeline_upload", unique_gcs_path, 
             0, "application/octet-stream", "", 
             json.dumps({"source": "pipeline", "pipeline_id": pipeline_id})
         ))

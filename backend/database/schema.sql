@@ -2,7 +2,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Companies table
-CREATE TABLE companies (
+CREATE TABLE IF NOT EXISTS companies (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL UNIQUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -11,7 +11,7 @@ CREATE TABLE companies (
 );
 
 -- Deals table (for organizing documents by deal/transaction)
-CREATE TABLE deals (
+CREATE TABLE IF NOT EXISTS deals (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     deal_name VARCHAR(255) NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE deals (
 );
 
 -- File uploads table
-CREATE TABLE file_uploads (
+CREATE TABLE IF NOT EXISTS file_uploads (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     deal_id UUID NOT NULL REFERENCES deals(id) ON DELETE CASCADE,
     original_filename VARCHAR(500) NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE file_uploads (
 );
 
 -- File tags table (many-to-many relationship)
-CREATE TABLE file_tags (
+CREATE TABLE IF NOT EXISTS file_tags (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
@@ -49,14 +49,14 @@ CREATE TABLE file_tags (
 );
 
 -- File upload tags junction table
-CREATE TABLE file_upload_tags (
+CREATE TABLE IF NOT EXISTS file_upload_tags (
     file_upload_id UUID NOT NULL REFERENCES file_uploads(id) ON DELETE CASCADE,
     tag_id UUID NOT NULL REFERENCES file_tags(id) ON DELETE CASCADE,
     PRIMARY KEY (file_upload_id, tag_id)
 );
 
 -- Processing jobs table
-CREATE TABLE processing_jobs (
+CREATE TABLE IF NOT EXISTS processing_jobs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     file_upload_id UUID NOT NULL REFERENCES file_uploads(id) ON DELETE CASCADE,
     job_type VARCHAR(100) NOT NULL, -- 'full_pipeline', 'analysis_only', 'extraction_only'
@@ -69,7 +69,7 @@ CREATE TABLE processing_jobs (
 );
 
 -- Document analysis results table
-CREATE TABLE document_analysis (
+CREATE TABLE IF NOT EXISTS document_analysis (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     file_upload_id UUID NOT NULL REFERENCES file_uploads(id) ON DELETE CASCADE,
     processing_job_id UUID NOT NULL REFERENCES processing_jobs(id) ON DELETE CASCADE,
@@ -107,7 +107,7 @@ CREATE TABLE document_analysis (
 );
 
 -- Redlines table (legal issues identified)
-CREATE TABLE redlines (
+CREATE TABLE IF NOT EXISTS redlines (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     document_analysis_id UUID NOT NULL REFERENCES document_analysis(id) ON DELETE CASCADE,
     issue_description TEXT NOT NULL,
@@ -119,7 +119,7 @@ CREATE TABLE redlines (
 );
 
 -- Common grounds table (areas of agreement)
-CREATE TABLE common_grounds (
+CREATE TABLE IF NOT EXISTS common_grounds (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     document_analysis_id UUID NOT NULL REFERENCES document_analysis(id) ON DELETE CASCADE,
     area VARCHAR(255) NOT NULL,
@@ -130,7 +130,7 @@ CREATE TABLE common_grounds (
 );
 
 -- Vector storage metadata table
-CREATE TABLE vector_metadata (
+CREATE TABLE IF NOT EXISTS vector_metadata (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     document_analysis_id UUID NOT NULL REFERENCES document_analysis(id) ON DELETE CASCADE,
     vector_ids TEXT[], -- Array of Pinecone vector IDs
@@ -141,23 +141,23 @@ CREATE TABLE vector_metadata (
 );
 
 -- Indexes for performance
-CREATE INDEX idx_companies_name ON companies(name);
-CREATE INDEX idx_deals_company_id ON deals(company_id);
-CREATE INDEX idx_deals_status ON deals(status);
-CREATE INDEX idx_file_uploads_deal_id ON file_uploads(deal_id);
-CREATE INDEX idx_file_uploads_status ON file_uploads(upload_status);
-CREATE INDEX idx_file_uploads_hash ON file_uploads(file_hash);
-CREATE INDEX idx_processing_jobs_file_upload_id ON processing_jobs(file_upload_id);
-CREATE INDEX idx_processing_jobs_status ON processing_jobs(status);
-CREATE INDEX idx_document_analysis_file_upload_id ON document_analysis(file_upload_id);
-CREATE INDEX idx_document_analysis_document_type ON document_analysis(document_type);
-CREATE INDEX idx_redlines_document_analysis_id ON redlines(document_analysis_id);
-CREATE INDEX idx_redlines_severity ON redlines(severity);
-CREATE INDEX idx_common_grounds_document_analysis_id ON common_grounds(document_analysis_id);
+CREATE INDEX IF NOT EXISTS idx_companies_name ON companies(name);
+CREATE INDEX IF NOT EXISTS idx_deals_company_id ON deals(company_id);
+CREATE INDEX IF NOT EXISTS idx_deals_status ON deals(status);
+CREATE INDEX IF NOT EXISTS idx_file_uploads_deal_id ON file_uploads(deal_id);
+CREATE INDEX IF NOT EXISTS idx_file_uploads_status ON file_uploads(upload_status);
+CREATE INDEX IF NOT EXISTS idx_file_uploads_hash ON file_uploads(file_hash);
+CREATE INDEX IF NOT EXISTS idx_processing_jobs_file_upload_id ON processing_jobs(file_upload_id);
+CREATE INDEX IF NOT EXISTS idx_processing_jobs_status ON processing_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_document_analysis_file_upload_id ON document_analysis(file_upload_id);
+CREATE INDEX IF NOT EXISTS idx_document_analysis_document_type ON document_analysis(document_type);
+CREATE INDEX IF NOT EXISTS idx_redlines_document_analysis_id ON redlines(document_analysis_id);
+CREATE INDEX IF NOT EXISTS idx_redlines_severity ON redlines(severity);
+CREATE INDEX IF NOT EXISTS idx_common_grounds_document_analysis_id ON common_grounds(document_analysis_id);
 
 -- Full-text search indexes
-CREATE INDEX idx_document_analysis_summary_fts ON document_analysis USING gin(to_tsvector('english', summary));
-CREATE INDEX idx_redlines_issue_fts ON redlines USING gin(to_tsvector('english', issue_description));
+CREATE INDEX IF NOT EXISTS idx_document_analysis_summary_fts ON document_analysis USING gin(to_tsvector('english', summary));
+CREATE INDEX IF NOT EXISTS idx_redlines_issue_fts ON redlines USING gin(to_tsvector('english', issue_description));
 
 -- Triggers for updated_at timestamps
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -168,7 +168,7 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
-CREATE TRIGGER update_companies_updated_at BEFORE UPDATE ON companies FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_deals_updated_at BEFORE UPDATE ON deals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_file_uploads_updated_at BEFORE UPDATE ON file_uploads FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_document_analysis_updated_at BEFORE UPDATE ON document_analysis FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE OR REPLACE TRIGGER update_companies_updated_at BEFORE UPDATE ON companies FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE OR REPLACE TRIGGER update_deals_updated_at BEFORE UPDATE ON deals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE OR REPLACE TRIGGER update_file_uploads_updated_at BEFORE UPDATE ON file_uploads FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE OR REPLACE TRIGGER update_document_analysis_updated_at BEFORE UPDATE ON document_analysis FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
